@@ -5,7 +5,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+#define MAX_LINE 1024
 // Functions
 
 /*
@@ -17,6 +19,19 @@
  * Returns:
  * */
 FILE *handleCmdLineArgs(int argc, char *argv[]);
+
+char **readLineByLine(FILE *file);
+char **parse_line(char *buffer);
+
+// Free strings allocated for arguments
+void free_args(char **args) {
+  if (args == NULL)
+    return;
+  for (int i = 0; args[i] != NULL; i++) {
+    free(args[i]);
+  }
+  free(args);
+}
 
 int main(int argc, char *argv[]) {
 
@@ -47,4 +62,26 @@ FILE *handleCmdLineArgs(int argc, char *argv[]) {
   }
 
   return stdin;
+}
+
+char **parse_line(char *buffer) {
+  int max_args = 30;
+  char **args = malloc(sizeof(char *) * max_args);
+
+  if (!args) {
+    fprintf(stderr, "Couldnt allocate memory for arguments");
+    return NULL;
+  }
+
+  char *tokens = strtok(buffer, " \t\n");
+
+  int i = 0;
+  while (tokens != NULL) {
+    args[i] = strdup(tokens);
+    i++;
+    tokens = strtok(NULL, " \t\n");
+  }
+
+  args[i] = NULL;
+  return args;
 }
