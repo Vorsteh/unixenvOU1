@@ -1,6 +1,5 @@
 CC = gcc
-CFLAGS = -g -std=gnu11 -Werror -Wall -Wextra -Wpedantic \
-         -Wmissing-declarations -Wmissing-prototypes -Wold-style-definition
+CFLAGS = -g -std=gnu11 -Werror -Wall -Wextra -Wpedantic -Wmissing-declarations -Wmissing-prototypes -Wold-style-definition
 
 TARGET = mexec
 OBJ = mexec.o
@@ -17,4 +16,3 @@ clean:
 	rm -f $(TARGET) $(OBJ)
 
 .PHONY: all clean
-

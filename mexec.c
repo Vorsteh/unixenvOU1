@@ -25,7 +25,7 @@ FILE *handleCmdLineArgs(int argc, char *argv[]);
 char **readLineByLine(FILE *file);
 char **parse_line(char *buffer);
 
-// Free strings allocated for arguments
+// Free strings & commands allocated for arguments
 void free_args(char **args);
 
 int main(int argc, char *argv[]) {
@@ -36,6 +36,8 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
 
   char line[MAX_LINE];
+  int commands_amount = 0;
+  char ***commands = NULL;
 
   while (fgets(line, MAX_LINE, file)) {
 
@@ -48,24 +50,72 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
-    int pid = fork();
+    commands = realloc(commands, sizeof(char **) * (commands_amount + 1));
 
+    if (!commands) {
+      perror("realloc");
+      exit(EXIT_FAILURE);
+    }
+
+    commands[commands_amount] = args;
+    commands_amount++;
+  }
+
+  int pipes_amount = commands_amount - 1;
+  int pipes[pipes_amount][2];
+  for (int i = 0; i < pipes_amount; i++) {
+    if (pipe(pipes[i]) == -1) {
+      perror("pipe");
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  for (int i = 0; i < commands_amount; i++) {
+    int pid = fork();
     if (pid == -1) {
       perror("fork");
       exit(EXIT_FAILURE);
-    } else if (pid == 0) {
-      execvp(args[0], args);
-      perror("execvp");
-      exit(EXIT_FAILURE);
-    } else {
-      int status;
-      waitpid(pid, &status, 0);
-      if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-        exit(EXIT_FAILURE);
     }
 
-    free_args(args);
+    if (pid == 0) {
+      if (i > 0)
+        dup2(pipes[i - 1][0], STDIN_FILENO);
+      if (i < commands_amount - 1)
+        dup2(pipes[i][1], STDOUT_FILENO);
+
+      for (int j = 0; j < pipes_amount; j++) {
+        close(pipes[j][0]);
+        close(pipes[j][1]);
+      }
+
+      execvp(commands[i][0], commands[i]);
+      perror("execvp");
+      exit(EXIT_FAILURE);
+    }
   }
+
+  for (int i = 0; i < pipes_amount; i++) {
+    close(pipes[i][0]);
+    close(pipes[i][1]);
+  }
+
+  int status;
+  for (int i = 0; i < commands_amount; i++) {
+    wait(&status);
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  // CLEANUP
+
+  if (file != stdin) {
+    fclose(file);
+  }
+  for (int i = 0; i < commands_amount; i++) {
+    free_args(commands[i]);
+  }
+  free(commands);
 
   return EXIT_SUCCESS;
 }
