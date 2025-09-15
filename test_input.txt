@@ -1,0 +1,4 @@
+cat -n mexec.c
+grep return mexec.c
+wc -l mexec.c
+

@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <wait.h>
 
 #define MAX_LINE 1024
 // Functions
@@ -24,14 +26,7 @@ char **readLineByLine(FILE *file);
 char **parse_line(char *buffer);
 
 // Free strings allocated for arguments
-void free_args(char **args) {
-  if (args == NULL)
-    return;
-  for (int i = 0; args[i] != NULL; i++) {
-    free(args[i]);
-  }
-  free(args);
-}
+void free_args(char **args);
 
 int main(int argc, char *argv[]) {
 
@@ -39,6 +34,38 @@ int main(int argc, char *argv[]) {
 
   if (!file)
     return EXIT_FAILURE;
+
+  char line[MAX_LINE];
+
+  while (fgets(line, MAX_LINE, file)) {
+
+    char **args = parse_line(line);
+    if (!args)
+      exit(EXIT_FAILURE);
+
+    if (args[0] == NULL) {
+      free_args(args);
+      continue;
+    }
+
+    int pid = fork();
+
+    if (pid == -1) {
+      perror("fork");
+      exit(EXIT_FAILURE);
+    } else if (pid == 0) {
+      execvp(args[0], args);
+      perror("execvp");
+      exit(EXIT_FAILURE);
+    } else {
+      int status;
+      waitpid(pid, &status, 0);
+      if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+        exit(EXIT_FAILURE);
+    }
+
+    free_args(args);
+  }
 
   return EXIT_SUCCESS;
 }
@@ -54,7 +81,7 @@ FILE *handleCmdLineArgs(int argc, char *argv[]) {
     FILE *file = fopen(argv[1], "r");
 
     if (!file) {
-      perror("Couldnt open the file");
+      perror("fopen");
       return NULL;
     }
 
@@ -84,4 +111,13 @@ char **parse_line(char *buffer) {
 
   args[i] = NULL;
   return args;
+}
+
+void free_args(char **args) {
+  if (args == NULL)
+    return;
+  for (int i = 0; args[i] != NULL; i++) {
+    free(args[i]);
+  }
+  free(args);
 }
