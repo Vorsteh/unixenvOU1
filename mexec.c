@@ -1,8 +1,3 @@
-#include <assert.h>
-// #include <errno.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,6 +50,7 @@ int main(int argc, char *argv[]) {
 }
 
 FILE *handleCmdLineArgs(int argc, char *argv[]) {
+
   if (argc > 2) {
     fprintf(stderr, "Usage: %s [file]\n", argv[0]);
 
@@ -63,9 +59,8 @@ FILE *handleCmdLineArgs(int argc, char *argv[]) {
 
   if (argc == 2) {
     FILE *file = fopen(argv[1], "r");
-
     if (!file) {
-      perror("fopen");
+      perror(argv[1]);
       return NULL;
     }
 
@@ -80,8 +75,8 @@ char **parse_line(char *buffer) {
   char **args = malloc(sizeof(char *) * max_args);
 
   if (!args) {
-    fprintf(stderr, "Couldnt allocate memory for arguments");
-    return NULL;
+    perror("malloc");
+    exit(EXIT_FAILURE);
   }
 
   char *tokens = strtok(buffer, " \t\n");
