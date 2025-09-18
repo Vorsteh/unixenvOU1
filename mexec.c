@@ -16,8 +16,6 @@
  * Returns:
  * */
 FILE *handleCmdLineArgs(int argc, char *argv[]);
-
-char **readLineByLine(FILE *file);
 char **parse_line(char *buffer);
 
 // Free strings & commands allocated for arguments
